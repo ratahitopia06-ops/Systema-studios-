@@ -1,0 +1,13 @@
+{
+  "name": "systema-studios-website",
+  "version": "1.0.0",
+  "description": "Systema Studios Revenue Architecture OS Website",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

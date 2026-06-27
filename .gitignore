@@ -1,0 +1,6 @@
+node_modules
+.ceo_access_key
+.ceo_audit_log.jsonl
+*.log
+.env
+.vercel
