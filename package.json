@@ -1,7 +1,7 @@
 {
-  "name": "systema-studios-website",
+  "name": "pillar-keystone-os",
   "version": "1.0.0",
-  "description": "Systema Studios Revenue Architecture OS Website",
+  "description": "Pillar & Keystone Revenue Architecture OS Website",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "name": "systema-studios-website",
+  "name": "pillar-keystone-os",
   "builds": [
     {
       "src": "server.js",

@@ -23,7 +23,7 @@ try {
   fs.writeFileSync(CEO_ACCESS_KEY_FILE, CEO_ACCESS_KEY, 'utf8');
 }
 console.log(`\n╔══════════════════════════════════════════╗`);
-console.log(`║  SYSTEMA STUDIOS — CEO COMMAND DASHBOARD ║`);
+console.log(`║  PILLAR & KEYSTONE — CEO COMMAND DASHBOARD ║`);
 console.log(`╠══════════════════════════════════════════╣`);
 console.log(`║  Port:       ${String(PORT).padEnd(29)}║`);
 console.log(`║  Host:       ${HOST.padEnd(29)}║`);
@@ -514,7 +514,7 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, HOST, () => {
-  console.log(`\n  🌐 Systema Studios LIVE`);
+  console.log(`\n  🌐 Pillar & Keystone LIVE`);
   console.log(`  ─────────────────────`);
   console.log(`  Site:     http://${HOST}:${PORT}`);
   console.log(`  Dashboard: http://${HOST}:${PORT}/ceo-command`);
