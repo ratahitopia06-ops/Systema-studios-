@@ -1,10 +1,11 @@
 {
   "name": "gorse-force",
-  "version": "1.0.0",
-  "description": "Gorse Force — Dunedin and Otago gorse-clearance business website.",
+  "version": "1.1.0",
+  "description": "Static business site and the Recursive Observer reasoning-agent surface.",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node --test"
   },
   "dependencies": {
     "nodemailer": "^9.0.5"
