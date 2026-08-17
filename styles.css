@@ -244,3 +244,5 @@ h1 em { color: var(--yellow); font-style: normal; }
 
 @media (max-width: 850px) { .pricing-heading { grid-template-columns: 1fr; gap: 1.3rem; }.pricing-heading-copy { max-width: 620px; }.pricing-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 650px) { .pricing-section { padding: 76px 0; }.pricing-heading { margin-bottom: 2.2rem; }.pricing-grid { grid-template-columns: 1fr; }.price-card { min-height: 260px; }.pricing-bottom { grid-template-columns: 32px 1fr; align-items: start; padding: 1.2rem; }.pricing-bottom .button { grid-column: 1 / -1; width: 100%; }.pricing-bottom p { font-size: .74rem; } }
+
+.service-price-hint { min-height: 2.5em; margin: .55rem 0 0; color: var(--olive); font-size: .65rem; font-weight: 700; line-height: 1.45; }

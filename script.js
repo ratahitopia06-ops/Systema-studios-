@@ -5,7 +5,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const form = document.querySelector('#quote-form');
   const formStatus = document.querySelector('#form-status');
   const serviceSelect = document.querySelector('#service');
+  const servicePriceHint = document.querySelector('#service-price-hint');
   const submitButton = form?.querySelector('button[type="submit"]');
+  const startingPrices = {
+    'Gorse Strike': '$690',
+    'Boundary Breaker': '$1,290',
+    'Gorse & Go': '$1,890',
+    'Paddock Force': '$2,450 / day',
+    'Full Force': '$3,450 / day',
+    'Return of the Gorse': '$475',
+  };
 
   const setHeaderState = () => {
     header?.classList.toggle('is-scrolled', window.scrollY > 18);
@@ -32,11 +41,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
   menu?.querySelectorAll('a').forEach((link) => link.addEventListener('click', closeMenu));
 
+  const updateServicePriceHint = () => {
+    if (!serviceSelect || !servicePriceHint) return;
+    const selectedService = serviceSelect.value;
+    const startingPrice = startingPrices[selectedService];
+    servicePriceHint.textContent = startingPrice
+      ? `${selectedService} starts from ${startingPrice} ex-GST. Final pricing follows a site visit.`
+      : 'Choose a service to see the public starting investment. Final pricing follows a site visit.';
+  };
+
   document.querySelectorAll('a[data-service]').forEach((link) => {
     link.addEventListener('click', () => {
-      if (serviceSelect) serviceSelect.value = link.dataset.service || '';
+      if (serviceSelect) {
+        serviceSelect.value = link.dataset.service || '';
+        updateServicePriceHint();
+      }
     });
   });
+
+  serviceSelect?.addEventListener('change', updateServicePriceHint);
+  updateServicePriceHint();
 
   const revealTargets = document.querySelectorAll('.reveal');
   if ('IntersectionObserver' in window) {
