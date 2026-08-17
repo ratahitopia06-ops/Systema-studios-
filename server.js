@@ -55,6 +55,7 @@ function validateQuote(payload) {
   const email = cleanText(payload.email, 160).toLowerCase();
   const service = cleanText(payload.service, 120);
   const location = cleanText(payload.location, 160);
+  const contactTime = cleanText(payload.contactTime, 80);
   const message = cleanText(payload.message, 3000);
   const errors = {};
 
@@ -66,7 +67,7 @@ function validateQuote(payload) {
   return {
     valid: Object.keys(errors).length === 0,
     errors,
-    cleaned: { name, phone, email, service, location, message },
+    cleaned: { name, phone, email, service, location, contactTime, message },
   };
 }
 

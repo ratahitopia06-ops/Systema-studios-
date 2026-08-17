@@ -191,3 +191,43 @@ h1 em { color: var(--yellow); font-style: normal; }
 }
 
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; }.hero-ticker div { animation: none; }.reveal { opacity: 1; transform: none; transition: none; } * { transition-duration: .01ms !important; } }
+
+/* --- Growth platform additions --- */
+.hero-photo { margin: 0; background: #2a321c; }
+.hero-photo img { position: absolute; z-index: 0; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; }
+.hero-photo-scrim { position: absolute; inset: 0; z-index: 1; background: linear-gradient(90deg, rgba(17,18,13,.42), transparent 58%), linear-gradient(0deg, rgba(17,18,13,.32), transparent 45%); }
+.hero-photo .visual-badge, .hero-photo .visual-caption { z-index: 2; }
+
+.proof-section { padding: 118px 0; border-bottom: 1px solid var(--line); }
+.proof-layout { display: grid; grid-template-columns: .72fr 1.28fr; gap: clamp(2rem, 7vw, 7rem); align-items: start; }
+.proof-heading h2 { margin: 0; font-size: clamp(3.8rem, 6.2vw, 6.6rem); letter-spacing: -.04em; }
+.proof-heading h2 span { color: var(--olive); }
+.proof-heading > p:last-child { max-width: 360px; margin: 1.35rem 0 0; color: #54574c; font-size: .92rem; line-height: 1.7; }
+.proof-cards { display: grid; grid-template-columns: 1.08fr .92fr; grid-template-rows: 1fr 1fr; gap: 1px; background: var(--ink); border: 1px solid var(--ink); }
+.proof-card { position: relative; min-height: 245px; padding: 1.6rem; overflow: hidden; }
+.proof-card-image { grid-row: span 2; padding: 0; background: var(--ink); }
+.proof-card-image img { width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; filter: saturate(.88) contrast(1.08); }
+.proof-card-overlay { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: end; padding: 1.5rem; color: #fff; background: linear-gradient(0deg, rgba(17,18,13,.9), transparent 60%); }
+.proof-card-overlay span, .campaign-kicker { margin: 0 0 .5rem; font-family: var(--font-mono); font-size: .58rem; letter-spacing: .11em; text-transform: uppercase; }
+.proof-card-overlay strong { font-family: var(--font-display); font-size: 2.2rem; font-weight: 800; line-height: .82; text-transform: uppercase; }
+.proof-card-plain { background: #e5e1d5; color: var(--ink); }
+.proof-card-yellow { background: var(--yellow); color: var(--ink); }
+.proof-icon { display: block; height: 51px; color: var(--olive); font-family: Georgia, serif; font-size: 4rem; line-height: 1; }
+.proof-number { display: block; margin-bottom: 2rem; font-family: var(--font-mono); font-size: .62rem; letter-spacing: .1em; }
+.proof-card h3 { max-width: 255px; margin: 0 0 .55rem; font-size: 1.82rem; letter-spacing: -.02em; }
+.proof-card p { max-width: 290px; margin: 0; font-size: .78rem; line-height: 1.62; opacity: .76; }
+.proof-card small { position: absolute; bottom: 1.35rem; left: 1.6rem; font-family: var(--font-mono); font-size: .5rem; letter-spacing: .09em; }
+.proof-card a { position: absolute; bottom: 1.35rem; left: 1.6rem; display: inline-flex; align-items: center; gap: .4rem; font-family: var(--font-mono); font-size: .6rem; font-weight: 500; letter-spacing: .07em; text-decoration: none; text-transform: uppercase; }
+.proof-card a:hover, .proof-card a:focus-visible { color: var(--olive); }
+
+.campaign-section { padding: 112px 0; background-image: linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px), linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px); background-size: 42px 42px; }
+.campaign-layout { display: grid; grid-template-columns: 1fr .9fr; gap: clamp(3rem, 10vw, 10rem); align-items: center; }
+.campaign-copy h2 { max-width: 600px; margin: 0; font-size: clamp(3.6rem, 5.8vw, 6rem); letter-spacing: -.04em; }.campaign-copy h2 span { color: var(--yellow); }.campaign-copy > p:not(.eyebrow) { max-width: 515px; margin: 1.5rem 0 2rem; color: rgba(255,255,255,.62); font-size: .93rem; line-height: 1.75; }
+.campaign-playbook { padding: 1.7rem; border: 1px solid var(--dark-line); background: rgba(255,255,255,.035); }
+.campaign-kicker { color: var(--yellow); }.campaign-playbook ol { padding: 0; margin: 1rem 0; list-style: none; }.campaign-playbook li { display: grid; grid-template-columns: 60px 1fr; grid-template-rows: auto auto; column-gap: 1rem; padding: 1rem 0; border-top: 1px solid var(--dark-line); }.campaign-playbook li:last-child { border-bottom: 1px solid var(--dark-line); }.campaign-playbook li span { grid-row: span 2; padding-top: .15rem; color: var(--yellow); font-family: var(--font-mono); font-size: .58rem; }.campaign-playbook li strong { color: #fff; font-family: var(--font-display); font-size: 1.42rem; line-height: 1; text-transform: uppercase; }.campaign-playbook li small { margin-top: .32rem; color: rgba(255,255,255,.52); font-size: .7rem; }.audio-note { display: flex; gap: .55rem; margin: 1.25rem 0 0; color: rgba(255,255,255,.63); font-size: .71rem; line-height: 1.5; }.audio-note span { color: var(--yellow); font-size: 1rem; }
+
+.coverage-layout { grid-template-columns: .9fr 1fr .45fr; }.location-panel { grid-column: 1 / -1; display: flex; align-items: flex-start; gap: 1rem; max-width: 430px; margin-top: .7rem; padding: 1.1rem 0 0; border-top: 1px solid rgba(17,18,13,.35); }.location-pin { display: grid; flex: 0 0 auto; width: 33px; height: 33px; place-items: center; border: 1px solid var(--ink); border-radius: 50%; font-size: 1.1rem; }.location-panel strong { display: block; font-family: var(--font-mono); font-size: .61rem; letter-spacing: .1em; text-transform: uppercase; }.location-panel p { margin: .3rem 0 0; font-size: .79rem; line-height: 1.55; }
+.contact-path { display: flex; gap: .8rem; max-width: 365px; margin-top: 1.25rem; padding-top: 1.15rem; border-top: 1px solid var(--line); }.contact-path > span { color: var(--olive); font-family: var(--font-display); font-size: 2rem; line-height: .85; }.contact-path p { margin: 0; color: #5a5d53; font-size: .72rem; line-height: 1.58; }.contact-path strong { color: var(--olive); }
+
+@media (max-width: 850px) { .proof-layout, .campaign-layout { grid-template-columns: 1fr; }.proof-heading > p:last-child { max-width: 500px; }.coverage-layout { grid-template-columns: 1fr 1fr; }.location-panel { grid-column: 1 / -1; }.hero-photo img { object-position: 62% center; } }
+@media (max-width: 650px) { .proof-section, .campaign-section { padding: 76px 0; }.proof-cards { grid-template-columns: 1fr; grid-template-rows: auto; }.proof-card-image { grid-row: auto; min-height: 380px; }.proof-card { min-height: 220px; }.campaign-playbook { padding: 1.2rem; }.coverage-layout { grid-template-columns: 1fr; }.coverage-stamp { grid-column: auto; }.location-panel { grid-column: auto; }.hero-photo img { object-position: 68% center; } }
