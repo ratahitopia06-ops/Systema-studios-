@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "name": "pillar-keystone-os",
+  "name": "gorse-force",
   "builds": [
     {
       "src": "server.js",
