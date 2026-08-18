@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyCreativeTemplate, composeGenerationPrompt, createAudiobookChapter, createFilmProject, creativeTemplates, getChapterDuration, getProjectProgress, getQualityAverage, sortShots, studioSeed, withExperienceDefaults } from "./cinema";
+import { allCreativeTemplates, applyCreativeTemplate, buildTemplatePreviewScript, composeGenerationPrompt, createAudiobookChapter, createCustomTemplate, createFilmProject, creativeTemplates, getChapterDuration, getProjectProgress, getQualityAverage, removeCustomTemplateAndReassign, sortShots, studioSeed, withExperienceDefaults, withStudioDefaults } from "./cinema";
 
 describe("cinema domain utilities", () => {
   it("creates a project with a usable default production state", () => {
@@ -79,5 +79,35 @@ describe("cinema domain utilities", () => {
     expect(styled.experience.visualStyle).toBe(template.illustration.style);
     expect(styled.experience.sound).toBe(template.soundscape.density);
     expect(styled.experience.music).toBe(template.soundtrack.direction);
+  });
+
+  it("creates and resolves a reusable custom template without mutating its built-in seed", () => {
+    const seed = creativeTemplates[0]!;
+    const custom = createCustomTemplate(seed);
+    custom.narration.profile = "Soft, investigative, and close";
+    const library = allCreativeTemplates([custom]);
+    const styled = applyCreativeTemplate(studioSeed.projects[0]!, custom.id, library);
+    expect(custom.custom).toBe(true);
+    expect(custom.id).not.toBe(seed.id);
+    expect(seed.narration.profile).not.toBe(custom.narration.profile);
+    expect(styled.experience.templateId).toBe(custom.id);
+    expect(withStudioDefaults({ ...studioSeed, customTemplates: [custom] }).customTemplates).toHaveLength(1);
+  });
+
+  it("provides concise spoken preview copy for any creative profile", () => {
+    const preview = buildTemplatePreviewScript(creativeTemplates[0]!);
+    expect(preview).toContain("edge of the known map");
+    expect(preview.split(" ").length).toBeLessThan(40);
+  });
+
+  it("reassigns an attached custom profile to the fallback template and preserves that state on reload", () => {
+    const custom = createCustomTemplate(creativeTemplates[2]!);
+    const attachedProject = applyCreativeTemplate(studioSeed.projects[0]!, custom.id, allCreativeTemplates([custom]));
+    const afterDeletion = removeCustomTemplateAndReassign({ ...studioSeed, projects: [attachedProject], customTemplates: [custom] }, custom.id);
+    const reloaded = withStudioDefaults(JSON.parse(JSON.stringify(afterDeletion)));
+    expect(afterDeletion.customTemplates).toEqual([]);
+    expect(afterDeletion.projects[0]!.experience.templateId).toBe("cinematic-drama");
+    expect(reloaded.projects[0]!.experience.templateId).toBe("cinematic-drama");
+    expect(reloaded.customTemplates).toEqual([]);
   });
 });

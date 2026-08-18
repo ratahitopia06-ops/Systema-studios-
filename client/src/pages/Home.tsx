@@ -51,17 +51,22 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import {
   type Character,
+  type CreativeTemplate,
   type FilmProject,
   type ProjectStatus,
   type Scene,
   type Shot,
   type StudioState,
+  allCreativeTemplates,
+  applyCreativeTemplate,
   composeGenerationPrompt,
   createFilmProject,
   getProjectProgress,
+  removeCustomTemplateAndReassign,
   sortShots,
   studioSeed,
   withExperienceDefaults,
+  withStudioDefaults,
 } from "@/lib/cinema";
 import { trpc } from "@/lib/trpc";
 
@@ -138,12 +143,12 @@ export default function Home() {
       const saved = window.localStorage.getItem("cinema-os-studio");
       if (!saved) return studioSeed;
       const stored = JSON.parse(saved) as StudioState;
-      return { ...stored, projects: stored.projects.map(withExperienceDefaults) };
+      return withStudioDefaults(stored);
     } catch {
       return studioSeed;
     }
   });
-  const [activeTab, setActiveTab] = useState<StudioTab>("Studio");
+  const [activeTab, setActiveTab] = useState<StudioTab>(() => window.location.hash === "#templates" ? "Templates" : "Studio");
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
@@ -155,6 +160,7 @@ export default function Home() {
   const { isAuthenticated, loading: authLoading } = useAuth();
 
   const current = studio.projects.find((project) => project.id === studio.activeProjectId) ?? studio.projects[0]!;
+  const templates = useMemo(() => allCreativeTemplates(studio.customTemplates), [studio.customTemplates]);
   const selectedScene = current.scenes.find((scene) => scene.id === selectedSceneId) ?? current.scenes[0];
   const selectedShot = current.shots.find((shot) => shot.id === selectedShotId) ?? current.shots[0];
   const progress = getProjectProgress(current);
@@ -162,10 +168,20 @@ export default function Home() {
   const generateMutation = trpc.cinema.generateFrame.useMutation();
   const uploadSourceMutation = trpc.cinema.uploadSource.useMutation();
   const markSourceReadyMutation = trpc.cinema.markSourceReady.useMutation();
+  const customTemplateQuery = trpc.cinema.listCustomTemplates.useQuery({ projectId: current.id }, { enabled: isAuthenticated && !authLoading });
+  const saveCustomTemplateMutation = trpc.cinema.saveCustomTemplate.useMutation();
+  const deleteCustomTemplateMutation = trpc.cinema.deleteCustomTemplate.useMutation();
+  const trpcUtils = trpc.useUtils();
 
   useEffect(() => {
     window.localStorage.setItem("cinema-os-studio", JSON.stringify(studio));
   }, [studio]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !customTemplateQuery.data) return;
+    const customTemplates = customTemplateQuery.data.map((record) => record.template as unknown as CreativeTemplate);
+    setStudio((state) => JSON.stringify(state.customTemplates) === JSON.stringify(customTemplates) ? state : { ...state, customTemplates });
+  }, [customTemplateQuery.data, isAuthenticated]);
 
   const context = useMemo(
     () => [
@@ -182,14 +198,57 @@ export default function Home() {
 
   const updateCurrent = (updated: FilmProject) => setStudio((state) => updateProjectInState(state, updated));
 
+  const applyTemplateToCurrent = (templateId: string) => updateCurrent(applyCreativeTemplate(current, templateId, templates));
+
+  const saveCustomTemplate = (template: CreativeTemplate) => {
+    setStudio((state) => {
+      const exists = state.customTemplates.some((item) => item.id === template.id);
+      return { ...state, customTemplates: exists ? state.customTemplates.map((item) => item.id === template.id ? template : item) : [...state.customTemplates, template] };
+    });
+    if (!isAuthenticated || authLoading) {
+      toast.success("Custom profile saved in this browser. Sign in to sync it to the project library.");
+      return;
+    }
+    saveCustomTemplateMutation.mutate(
+      { projectId: current.id, template: { ...template, custom: true, createdAt: template.createdAt ?? Date.now() } },
+      {
+        onSuccess: () => {
+          trpcUtils.cinema.listCustomTemplates.invalidate({ projectId: current.id });
+          toast.success("Custom profile saved to the project library.");
+        },
+        onError: (error) => toast.error(error.message || "Could not sync the custom profile."),
+      }
+    );
+  };
+
+  const deleteCustomTemplate = (templateId: string) => {
+    setStudio((state) => removeCustomTemplateAndReassign(state, templateId));
+    if (!isAuthenticated || authLoading) {
+      toast.success("Custom profile removed from this browser.");
+      return;
+    }
+    deleteCustomTemplateMutation.mutate(
+      { projectId: current.id, templateId },
+      {
+        onSuccess: () => {
+          trpcUtils.cinema.listCustomTemplates.invalidate({ projectId: current.id });
+          toast.success("Custom profile removed from the project library.");
+        },
+        onError: (error) => toast.error(error.message || "Could not remove the custom profile."),
+      }
+    );
+  };
+
   const setTab = (tab: StudioTab) => {
     setActiveTab(tab);
+    const hash = tab === "Templates" ? "#templates" : "";
+    if (window.location.hash !== hash) window.history.replaceState(null, "", `${window.location.pathname}${hash}`);
     setMobileMenuOpen(false);
   };
 
   const createProject = () => {
     const project = createFilmProject(newProject);
-    setStudio((state) => ({ projects: [project, ...state.projects], activeProjectId: project.id }));
+    setStudio((state) => ({ ...state, projects: [project, ...state.projects], activeProjectId: project.id }));
     setNewProject({ title: "", logline: "", genre: "" });
     setCreateOpen(false);
     setActiveTab("Story Bible");
@@ -318,7 +377,7 @@ export default function Home() {
       case "Story Bible":
         return <StoryPanel project={current} onUpdate={updateCurrent} onAsk={() => setTab("AI Assistant")} />;
       case "Templates":
-        return <CreativeTemplateLibrary project={current} onUpdate={updateCurrent} />;
+        return <CreativeTemplateLibrary project={current} templates={templates} onApplyTemplate={applyTemplateToCurrent} onUpdate={updateCurrent} onSaveCustomTemplate={saveCustomTemplate} onDeleteCustomTemplate={deleteCustomTemplate} />;
       case "Source":
       case "Chapters":
       case "Narration":

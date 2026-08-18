@@ -94,6 +94,8 @@ export type CreativeTemplate = {
   soundscape: { density: ExperienceSettings["sound"]; profile: string; silence: string };
   soundtrack: { direction: ExperienceSettings["music"]; profile: string; dynamic: string };
   aesthetic: { palette: string; texture: string; motion: string };
+  custom?: boolean;
+  createdAt?: number;
 };
 
 export type AudiobookChapter = {
@@ -154,6 +156,7 @@ export type FilmProject = {
 export type StudioState = {
   projects: FilmProject[];
   activeProjectId: string;
+  customTemplates: CreativeTemplate[];
 };
 
 export const emptyStoryBible: StoryBible = {
@@ -205,8 +208,12 @@ export const creativeTemplates: CreativeTemplate[] = [
   },
 ];
 
-export function applyCreativeTemplate(project: FilmProject, templateId: string): FilmProject {
-  const template = creativeTemplates.find((item) => item.id === templateId);
+export function allCreativeTemplates(customTemplates: CreativeTemplate[] = []): CreativeTemplate[] {
+  return [...creativeTemplates, ...customTemplates];
+}
+
+export function applyCreativeTemplate(project: FilmProject, templateId: string, templates: CreativeTemplate[] = creativeTemplates): FilmProject {
+  const template = templates.find((item) => item.id === templateId);
   if (!template) return project;
   return {
     ...project,
@@ -218,6 +225,43 @@ export function applyCreativeTemplate(project: FilmProject, templateId: string):
       sound: template.soundscape.density,
       music: template.soundtrack.direction,
     },
+  };
+}
+
+export function createCustomTemplate(seed: CreativeTemplate = creativeTemplates[0]!): CreativeTemplate {
+  const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+  return {
+    ...seed,
+    id: `custom-${stamp}`,
+    name: "Untitled profile",
+    family: "Cinematic",
+    summary: "A custom direction for a specific narrative world.",
+    tone: seed.tone,
+    narration: { ...seed.narration },
+    illustration: { ...seed.illustration },
+    soundscape: { ...seed.soundscape },
+    soundtrack: { ...seed.soundtrack },
+    aesthetic: { ...seed.aesthetic },
+    custom: true,
+    createdAt: Date.now(),
+  };
+}
+
+export function buildTemplatePreviewScript(_template: CreativeTemplate): string {
+  return "At the edge of the known map, the light changes. A door opens where none should be, and for one quiet breath, the world asks to be seen again.";
+}
+
+export function withStudioDefaults(state: StudioState): StudioState {
+  return { ...state, projects: state.projects.map(withExperienceDefaults), customTemplates: state.customTemplates ?? [] };
+}
+
+export function removeCustomTemplateAndReassign(state: StudioState, templateId: string): StudioState {
+  const customTemplates = state.customTemplates.filter((template) => template.id !== templateId);
+  const available = allCreativeTemplates(customTemplates);
+  return {
+    ...state,
+    customTemplates,
+    projects: state.projects.map((project) => project.experience.templateId === templateId ? applyCreativeTemplate(project, "cinematic-drama", available) : project),
   };
 }
 
@@ -350,6 +394,7 @@ export function composeGenerationPrompt(input: {
 
 export const studioSeed: StudioState = {
   activeProjectId: "sample-film",
+  customTemplates: [],
   projects: [
     {
       id: "sample-film",

@@ -6,7 +6,22 @@ import { invokeLLM } from "./_core/llm";
 import { systemRouter } from "./_core/systemRouter";
 import { protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { storagePut } from "./storage";
-import { markCinemaSourceReady, upsertCinemaSourceIngestion } from "./db";
+import { deleteCinemaCustomTemplate, listCinemaCustomTemplates, markCinemaSourceReady, upsertCinemaCustomTemplate, upsertCinemaSourceIngestion } from "./db";
+
+const creativeTemplateInput = z.object({
+  id: z.string().trim().regex(/^custom-[a-z0-9-]+$/i).max(128),
+  name: z.string().trim().min(1).max(160),
+  family: z.enum(["Cinematic", "Comic", "Anime", "Philosophy", "Modern social", "Drama", "Education", "Mythic"]),
+  summary: z.string().trim().min(1).max(1000),
+  tone: z.string().trim().min(1).max(400),
+  narration: z.object({ mode: z.enum(["Natural", "Dramatic", "Documentary", "Character-driven", "Educational"]), profile: z.string().trim().min(1).max(400), pace: z.string().trim().min(1).max(400), delivery: z.string().trim().min(1).max(400) }),
+  illustration: z.object({ style: z.enum(["Cinematic", "Realistic", "Illustrated", "Painterly", "Animation"]), profile: z.string().trim().min(1).max(400), composition: z.string().trim().min(1).max(400), typography: z.string().trim().min(1).max(400) }),
+  soundscape: z.object({ density: z.enum(["Minimal", "Atmospheric", "Cinematic", "Immersive"]), profile: z.string().trim().min(1).max(400), silence: z.string().trim().min(1).max(400) }),
+  soundtrack: z.object({ direction: z.enum(["Minimal", "Emotional", "Epic", "Experimental"]), profile: z.string().trim().min(1).max(400), dynamic: z.string().trim().min(1).max(400) }),
+  aesthetic: z.object({ palette: z.string().trim().min(1).max(400), texture: z.string().trim().min(1).max(400), motion: z.string().trim().min(1).max(400) }),
+  custom: z.literal(true),
+  createdAt: z.number().int().positive(),
+});
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -74,6 +89,18 @@ export const appRouter = router({
     markSourceReady: protectedProcedure
       .input(z.object({ projectId: z.string().trim().min(1).max(96) }))
       .mutation(({ ctx, input }) => markCinemaSourceReady(ctx.user.id, input.projectId)),
+    listCustomTemplates: protectedProcedure
+      .input(z.object({ projectId: z.string().trim().min(1).max(96) }))
+      .query(async ({ ctx, input }) => {
+        const records = await listCinemaCustomTemplates(ctx.user.id, input.projectId);
+        return records.map((record) => ({ templateId: record.templateId, template: JSON.parse(record.templateJson) }));
+      }),
+    saveCustomTemplate: protectedProcedure
+      .input(z.object({ projectId: z.string().trim().min(1).max(96), template: creativeTemplateInput }))
+      .mutation(({ ctx, input }) => upsertCinemaCustomTemplate({ userId: ctx.user.id, projectId: input.projectId, templateId: input.template.id, name: input.template.name, templateJson: JSON.stringify(input.template) })),
+    deleteCustomTemplate: protectedProcedure
+      .input(z.object({ projectId: z.string().trim().min(1).max(96), templateId: z.string().trim().regex(/^custom-[a-z0-9-]+$/i).max(128) }))
+      .mutation(({ ctx, input }) => deleteCinemaCustomTemplate(ctx.user.id, input.projectId, input.templateId)),
     assist: protectedProcedure
       .input(
         z.object({

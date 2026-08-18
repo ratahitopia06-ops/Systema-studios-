@@ -28,3 +28,10 @@
 - [x] Apply a selected profile as a reusable project-level creative direction and add test coverage.
 - [x] Validate the creative-template update with responsive review, type checking, tests, and production build.
 - [x] Push the creative-template update to feature/cinema-os.
+- [x] Add a short profile preview with narration copy, visual direction, and an audible audio treatment before application.
+- [x] Add custom template profile creation, saving, editing, deletion, and project-level application.
+- [x] Persist custom template profiles in browser-local studio state and cover core preview and management behavior with tests.
+- [x] Validate profile previews and custom-template workflows with responsive review, type checking, tests, and production build.
+- [x] Persist custom template profiles as project-linked records beyond browser-local state.
+- [x] Add test coverage for deleting an attached custom profile and reassigning projects to the fallback template across sync/reload behavior.
+- [ ] Push the profile-preview and custom-template update to feature/cinema-os.

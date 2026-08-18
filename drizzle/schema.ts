@@ -48,3 +48,22 @@ export const cinemaSourceIngestions = mysqlTable(
 
 export type CinemaSourceIngestion = typeof cinemaSourceIngestions.$inferSelect;
 export type InsertCinemaSourceIngestion = typeof cinemaSourceIngestions.$inferInsert;
+
+export const cinemaCustomTemplates = mysqlTable(
+  "cinema_custom_templates",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId").notNull(),
+    projectId: varchar("projectId", { length: 96 }).notNull(),
+    templateId: varchar("templateId", { length: 128 }).notNull(),
+    name: varchar("name", { length: 160 }).notNull(),
+    templateJson: text("templateJson").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    userProjectTemplateUnique: uniqueIndex("cinema_custom_templates_user_project_template_unique").on(table.userId, table.projectId, table.templateId),
+  })
+);
+
+export type CinemaCustomTemplate = typeof cinemaCustomTemplates.$inferSelect;

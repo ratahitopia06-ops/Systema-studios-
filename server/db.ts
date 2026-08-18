@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { cinemaSourceIngestions, InsertUser, users } from "../drizzle/schema";
+import { cinemaCustomTemplates, cinemaSourceIngestions, InsertUser, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -128,4 +128,25 @@ export async function markCinemaSourceReady(userId: number, projectId: string) {
 
   await db.update(cinemaSourceIngestions).set({ status: "ready_for_analysis" }).where(eq(cinemaSourceIngestions.id, source.id));
   return { ...source, status: "ready_for_analysis" as const };
+}
+
+export async function upsertCinemaCustomTemplate(input: { userId: number; projectId: string; templateId: string; name: string; templateJson: string }) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is unavailable. Custom templates cannot be persisted.");
+  await db.insert(cinemaCustomTemplates).values(input).onDuplicateKeyUpdate({ set: { name: input.name, templateJson: input.templateJson } });
+  const records = await db.select().from(cinemaCustomTemplates).where(and(eq(cinemaCustomTemplates.userId, input.userId), eq(cinemaCustomTemplates.projectId, input.projectId), eq(cinemaCustomTemplates.templateId, input.templateId))).limit(1);
+  return records[0];
+}
+
+export async function listCinemaCustomTemplates(userId: number, projectId: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is unavailable. Custom templates cannot be loaded.");
+  return db.select().from(cinemaCustomTemplates).where(and(eq(cinemaCustomTemplates.userId, userId), eq(cinemaCustomTemplates.projectId, projectId)));
+}
+
+export async function deleteCinemaCustomTemplate(userId: number, projectId: string, templateId: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is unavailable. Custom templates cannot be deleted.");
+  await db.delete(cinemaCustomTemplates).where(and(eq(cinemaCustomTemplates.userId, userId), eq(cinemaCustomTemplates.projectId, projectId), eq(cinemaCustomTemplates.templateId, templateId)));
+  return { success: true } as const;
 }
