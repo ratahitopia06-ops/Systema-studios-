@@ -42,7 +42,7 @@ test('places the immutable reasoning policy before client-controlled content', (
   });
 
   assert.equal(messages[0].role, 'system');
-  assert.match(messages[0].content, /Do not infer recurrence from one occurrence of consciousness/);
+  assert.match(messages[0].content, /the system must constantly try to prove itself wrong/i);
   assert.deepEqual(messages.slice(1), [
     { role: 'user', content: 'Use a probability argument.' },
     { role: 'user', content: 'Does consciousness once imply recurrence?' },
