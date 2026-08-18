@@ -22,4 +22,4 @@
 - [x] Validate the visual-audiobook synthesis with current desktop and mobile responsive review, type checking, tests, and production build.
 - [x] Persist source-ingestion metadata and state transitions beyond browser-local project state.
 - [x] Implement and test the complete source state path from selected to uploaded to ready for analysis.
-- [ ] Push the visual-audiobook synthesis update to feature/cinema-os.
+- [x] Push the visual-audiobook synthesis update to feature/cinema-os.
