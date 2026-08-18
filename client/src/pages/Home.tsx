@@ -1,4 +1,5 @@
 import { AIChatBox, type Message } from "@/components/AIChatBox";
+import VisualAudiobookWorkspace, { type ExperienceView } from "@/components/VisualAudiobookWorkspace";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { startLogin } from "@/const";
@@ -9,14 +10,18 @@ import { toast } from "sonner";
 import {
   ArrowLeft,
   ArrowRight,
+  AudioLines,
   BookOpen,
+  BookOpenText,
   Bot,
   Boxes,
   ChevronDown,
   CircleHelp,
   Clapperboard,
+  Clock3,
   Copy,
   FileText,
+  FileUp,
   Film,
   Frame,
   GalleryVerticalEnd,
@@ -27,12 +32,14 @@ import {
   Lock,
   MapPin,
   Menu,
+  Music2,
   MoreHorizontal,
   PanelLeftClose,
   PanelLeftOpen,
   Plus,
   ScanLine,
   Settings2,
+  ShieldCheck,
   Sparkles,
   Target,
   UsersRound,
@@ -52,21 +59,29 @@ import {
   getProjectProgress,
   sortShots,
   studioSeed,
+  withExperienceDefaults,
 } from "@/lib/cinema";
 import { trpc } from "@/lib/trpc";
 
-type StudioTab = "Studio" | "Projects" | "Story Bible" | "Characters" | "World" | "Scenes" | "Shot List" | "AI Assistant" | "Generation";
+type StudioTab = "Studio" | "Projects" | "Source" | "Story Bible" | "Chapters" | "Narration" | "Characters" | "World" | "Scenes" | "Shot List" | "Generation" | "Audio" | "Timeline" | "Quality" | "Export" | "AI Assistant";
 
 const navItems: { label: StudioTab; icon: typeof LayoutDashboard }[] = [
   { label: "Studio", icon: LayoutDashboard },
   { label: "Projects", icon: Film },
+  { label: "Source", icon: FileUp },
   { label: "Story Bible", icon: BookOpen },
+  { label: "Chapters", icon: BookOpenText },
+  { label: "Narration", icon: AudioLines },
   { label: "Characters", icon: UsersRound },
   { label: "World", icon: MapPin },
   { label: "Scenes", icon: FileText },
   { label: "Shot List", icon: Clapperboard },
-  { label: "AI Assistant", icon: Bot },
   { label: "Generation", icon: ImagePlus },
+  { label: "Audio", icon: Music2 },
+  { label: "Timeline", icon: Clock3 },
+  { label: "Quality", icon: ShieldCheck },
+  { label: "Export", icon: GalleryVerticalEnd },
+  { label: "AI Assistant", icon: Bot },
 ];
 
 const storyFields: { key: keyof FilmProject["story"]; label: string; hint: string }[] = [
@@ -118,7 +133,9 @@ export default function Home() {
   const [studio, setStudio] = useState<StudioState>(() => {
     try {
       const saved = window.localStorage.getItem("cinema-os-studio");
-      return saved ? (JSON.parse(saved) as StudioState) : studioSeed;
+      if (!saved) return studioSeed;
+      const stored = JSON.parse(saved) as StudioState;
+      return { ...stored, projects: stored.projects.map(withExperienceDefaults) };
     } catch {
       return studioSeed;
     }
@@ -140,6 +157,8 @@ export default function Home() {
   const progress = getProjectProgress(current);
   const assistMutation = trpc.cinema.assist.useMutation();
   const generateMutation = trpc.cinema.generateFrame.useMutation();
+  const uploadSourceMutation = trpc.cinema.uploadSource.useMutation();
+  const markSourceReadyMutation = trpc.cinema.markSourceReady.useMutation();
 
   useEffect(() => {
     window.localStorage.setItem("cinema-os-studio", JSON.stringify(studio));
@@ -150,6 +169,8 @@ export default function Home() {
       `Logline: ${current.logline}`,
       `Premise: ${current.story.premise}`,
       `Themes: ${current.story.themes}`,
+      `Source: ${current.source.name || "original story"}; rights: ${current.source.rights}.`,
+      `Chapters: ${current.chapters.map((chapter) => `${chapter.title} (${chapter.narrationSummary})`).join(" | ") || "not yet structured"}`,
       `Characters: ${current.characters.map((character) => `${character.name} (${character.role})`).join(", ") || "not yet defined"}`,
       `Current scene: ${selectedScene ? `${selectedScene.heading} — ${selectedScene.action}` : "not selected"}`,
     ].join("\n"),
@@ -232,12 +253,75 @@ export default function Home() {
     );
   };
 
+  const uploadSource = (file: File) => {
+    if (!isAuthenticated || authLoading) {
+      toast.info("Sign in to upload source material to your private production workspace.");
+      startLogin();
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error("Source files must be 8 MB or smaller for this ingestion step.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onerror = () => toast.error("The source file could not be read.");
+    reader.onload = () => {
+      const contentBase64 = String(reader.result).split(",")[1];
+      if (!contentBase64) {
+        toast.error("The source file could not be encoded for upload.");
+        return;
+      }
+      uploadSourceMutation.mutate(
+        { fileName: file.name, mimeType: file.type || "text/plain", contentBase64, projectId: current.id, rightsStatus: current.source.rights },
+        {
+          onSuccess: ({ key, url, sizeBytes }) => {
+            setStudio((state) => {
+              const active = state.projects.find((project) => project.id === state.activeProjectId);
+              if (!active) return state;
+              const extension = file.name.split(".").pop()?.toLowerCase();
+              const type = extension === "pdf" ? "PDF" : extension === "docx" ? "DOCX" : extension === "epub" ? "EPUB" : extension === "txt" ? "TXT" : "Manuscript";
+              return updateProjectInState(state, { ...active, source: { ...active.source, name: file.name, type, fileKey: key, fileUrl: url, sizeBytes, ingestionStatus: "Uploaded" } });
+            });
+            toast.success("Source material uploaded to secure project storage.");
+          },
+          onError: (error) => toast.error(error.message || "Source upload failed. Please try again."),
+        }
+      );
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const markSourceReady = () => {
+    if (!current.source.fileKey) {
+      toast.error("Upload source material before marking it ready for analysis.");
+      return;
+    }
+    markSourceReadyMutation.mutate(
+      { projectId: current.id },
+      {
+        onSuccess: () => {
+          updateCurrent({ ...current, source: { ...current.source, ingestionStatus: "Ready for analysis" } });
+          toast.success("Source state saved: ready for analysis.");
+        },
+        onError: (error) => toast.error(error.message || "Could not update source state."),
+      }
+    );
+  };
+
   const renderPanel = () => {
     switch (activeTab) {
       case "Projects":
         return <ProjectsPanel projects={studio.projects} activeProjectId={current.id} onSelect={(id) => setStudio((state) => ({ ...state, activeProjectId: id }))} onCreate={() => setCreateOpen(true)} />;
       case "Story Bible":
         return <StoryPanel project={current} onUpdate={updateCurrent} onAsk={() => setTab("AI Assistant")} />;
+      case "Source":
+      case "Chapters":
+      case "Narration":
+      case "Audio":
+      case "Timeline":
+      case "Quality":
+      case "Export":
+        return <VisualAudiobookWorkspace view={activeTab as ExperienceView} project={current} onUpdate={updateCurrent} canUploadSource={isAuthenticated && !authLoading} isUploadingSource={uploadSourceMutation.isPending} onUploadSource={uploadSource} isMarkingSourceReady={markSourceReadyMutation.isPending} onMarkSourceReady={markSourceReady} />;
       case "Characters":
         return <CharactersPanel project={current} onUpdate={updateCurrent} onAdd={addCharacter} onAsk={() => setTab("AI Assistant")} />;
       case "World":
@@ -261,16 +345,16 @@ export default function Home() {
         <div className="filmstrip flex h-[82px] shrink-0 items-center px-4">
           <div className="flex min-w-0 items-center gap-3">
             <div className="grid size-9 place-items-center border border-amber-300/50 bg-amber-300/10 text-amber-200"><ScanLine size={17} /></div>
-            {sidebarOpen && <div><p className="serif text-lg leading-none text-stone-100">CINEMA OS</p><p className="mt-1 mono text-[8px] tracking-[.23em] text-amber-200/55">FILM INTELLIGENCE</p></div>}
+            {sidebarOpen && <div><p className="serif text-lg leading-none text-stone-100">CINEMA OS</p><p className="mt-1 mono text-[8px] tracking-[.23em] text-amber-200/55">STORYTELLING ENGINE</p></div>}
           </div>
         </div>
         <div className="border-b border-amber-100/10 px-3 py-4">
           <button onClick={() => setCreateOpen(true)} className={`button-press flex w-full items-center justify-center gap-2 border border-amber-300/40 bg-amber-300/10 px-3 py-2.5 mono text-[10px] tracking-[.12em] text-amber-100 transition hover:bg-amber-200/15 ${sidebarOpen ? "" : "px-0"}`}>
-            <Plus size={15} /> {sidebarOpen && "NEW FILM"}
+            <Plus size={15} /> {sidebarOpen && "NEW EXPERIENCE"}
           </button>
         </div>
         <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-          {navItems.map(({ label, icon: Icon }, index) => <div key={label}>{index === 2 && sidebarOpen && <p className="label mb-2 mt-5 px-2 text-[8px]">Creative development</p>}<button onClick={() => setTab(label)} data-active={activeTab === label} className="nav-item" title={label}><Icon size={15} strokeWidth={1.6} /><span className={sidebarOpen ? "" : "hidden"}>{label}</span></button></div>)}
+          {navItems.map(({ label, icon: Icon }, index) => <div key={label}>{index === 2 && sidebarOpen && <p className="label mb-2 mt-5 px-2 text-[8px]">Visual audiobook production</p>}{index === 10 && sidebarOpen && <p className="label mb-2 mt-5 px-2 text-[8px]">Assembly & review</p>}<button onClick={() => setTab(label)} data-active={activeTab === label} className="nav-item" title={label}><Icon size={15} strokeWidth={1.6} /><span className={sidebarOpen ? "" : "hidden"}>{label}</span></button></div>)}
         </nav>
         <div className="border-t border-amber-100/10 p-3">
           <button onClick={() => setSidebarOpen((open) => !open)} className="nav-item"><>{sidebarOpen ? <PanelLeftClose size={15} /> : <PanelLeftOpen size={15} />}</><span className={sidebarOpen ? "" : "hidden"}>Collapse navigation</span></button>
@@ -294,9 +378,9 @@ export default function Home() {
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="border-amber-100/15 bg-[#15181e] text-stone-100 sm:max-w-[560px]">
-          <DialogHeader><p className="label text-amber-200/65">New production</p><DialogTitle className="serif text-3xl">Begin a film project</DialogTitle><DialogDescription className="text-stone-400">Name the working file and record the dramatic proposition. You can build its bibles, scenes, and visual plan from here.</DialogDescription></DialogHeader>
-          <div className="grid gap-4 py-2"><div><label className="label">Working title</label><Input value={newProject.title} onChange={(event) => setNewProject((value) => ({ ...value, title: event.target.value }))} placeholder="The title on the slate" className="mt-2 border-amber-100/15 bg-black/20" /></div><div><label className="label">Logline</label><Textarea value={newProject.logline} onChange={(event) => setNewProject((value) => ({ ...value, logline: event.target.value }))} placeholder="Who wants what, against what force?" className="mt-2 min-h-24 border-amber-100/15 bg-black/20" /></div><div><label className="label">Genre</label><Input value={newProject.genre} onChange={(event) => setNewProject((value) => ({ ...value, genre: event.target.value }))} placeholder="Drama, animation, documentary..." className="mt-2 border-amber-100/15 bg-black/20" /></div></div>
-          <DialogFooter><Button variant="outline" onClick={() => setCreateOpen(false)} className="border-amber-100/15 bg-transparent text-stone-300">Cancel</Button><Button onClick={createProject} className="bg-amber-300 text-stone-950 hover:bg-amber-200"><Clapperboard size={15} /> Create project</Button></DialogFooter>
+          <DialogHeader><p className="label text-amber-200/65">New story experience</p><DialogTitle className="serif text-3xl">Begin a visual audiobook</DialogTitle><DialogDescription className="text-stone-400">Name the working experience and its dramatic proposition. Source, chapters, narration, visuals, sound, and timing are then planned in one production memory.</DialogDescription></DialogHeader>
+          <div className="grid gap-4 py-2"><div><label className="label">Experience title</label><Input value={newProject.title} onChange={(event) => setNewProject((value) => ({ ...value, title: event.target.value }))} placeholder="The title on the chapter card" className="mt-2 border-amber-100/15 bg-black/20" /></div><div><label className="label">Logline / core idea</label><Textarea value={newProject.logline} onChange={(event) => setNewProject((value) => ({ ...value, logline: event.target.value }))} placeholder="What story, world, or central idea will the experience make tangible?" className="mt-2 min-h-24 border-amber-100/15 bg-black/20" /></div><div><label className="label">Genre or subject</label><Input value={newProject.genre} onChange={(event) => setNewProject((value) => ({ ...value, genre: event.target.value }))} placeholder="Fiction, history, memoir, study material..." className="mt-2 border-amber-100/15 bg-black/20" /></div></div>
+          <DialogFooter><Button variant="outline" onClick={() => setCreateOpen(false)} className="border-amber-100/15 bg-transparent text-stone-300">Cancel</Button><Button onClick={createProject} className="bg-amber-300 text-stone-950 hover:bg-amber-200"><Clapperboard size={15} /> Create experience</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
@@ -306,28 +390,28 @@ export default function Home() {
 function StudioPanel({ project, onTab, onCreate, onSelectScene }: { project: FilmProject; onTab: (tab: StudioTab) => void; onCreate: () => void; onSelectScene: (id: string) => void }) {
   const progress = getProjectProgress(project);
   const stages = [
-    ["01", "Story DNA", Boolean(project.story.premise), "Premise · Themes · Arc", "Story Bible"],
-    ["02", "Character & World", project.characters.length > 0 && project.world.length > 0, `${project.characters.length} characters · ${project.world.length} world entries`, "Characters"],
-    ["03", "Scene Architecture", project.scenes.length > 0, `${project.scenes.length} scenes mapped`, "Scenes"],
-    ["04", "Shot Design", project.shots.length > 0, `${project.shots.length} intentional shots`, "Shot List"],
-    ["05", "Visual Development", project.frames.length > 0, `${project.frames.length} storyboard frames`, "Generation"],
+    ["01", "Source & Story DNA", project.source.ingestionStatus === "Analysed" && Boolean(project.story.premise), `${project.source.wordCount.toLocaleString()} words · narrative foundation`, "Source"],
+    ["02", "Chapter Architecture", project.chapters.length > 0, `${project.chapters.length} chapters · narration path`, "Chapters"],
+    ["03", "World & Visuals", project.characters.length > 0 && project.world.length > 0, `${project.characters.length} characters · ${project.world.length} world entries`, "World"],
+    ["04", "Narration & Sound", project.chapters.some((chapter) => Boolean(chapter.soundscape && chapter.musicCue)), `${project.experience.narration} voice · ${project.experience.sound} sound`, "Audio"],
+    ["05", "Timeline & QA", project.timeline.length > 0 && project.quality.literaryAccuracy > 0, `${project.timeline.length} cues · review score`, "Timeline"],
   ] as const;
   return <div className="reveal">
     <div className="relative overflow-hidden border border-amber-100/15 bg-[#15181f]/85 p-6 sm:p-9">
       <div className="absolute inset-y-0 right-0 hidden w-[44%] bg-[radial-gradient(circle_at_80%_35%,rgba(210,162,77,.18),transparent_20%),linear-gradient(135deg,transparent_32%,rgba(210,162,77,.05)_32%,rgba(210,162,77,.05)_34%,transparent_34%)] lg:block" />
-      <FilmStrip label="ROLL 01 · PRODUCTION MAP · CINEMA OS" />
+      <FilmStrip label="ROLL 01 · VISUAL AUDIOBOOK MAP · CINEMA OS" />
       <div className="relative mt-8 grid gap-7 lg:grid-cols-[1.35fr_.65fr] lg:items-end">
-        <div><p className="label text-amber-200/70">Production intelligence workspace</p><h1 className="serif mt-3 max-w-3xl text-4xl leading-[.95] tracking-tight text-stone-100 sm:text-6xl">Make the film<br /><em className="text-amber-200/90">before the frame.</em></h1><p className="mt-5 max-w-xl text-sm leading-7 text-stone-400">CINEMA OS holds the story, directorial intent, and shot logic in one production memory—so every image begins with context, not a blank prompt.</p><div className="mt-7 flex flex-wrap gap-3"><Button onClick={() => onTab("Story Bible")} className="button-press bg-amber-300 text-stone-950 hover:bg-amber-200"><BookOpen size={15} /> Open story bible</Button><Button onClick={onCreate} variant="outline" className="button-press border-amber-100/20 bg-transparent text-stone-200 hover:bg-white/5"><Plus size={15} /> Create another film</Button></div></div>
+        <div><p className="label text-amber-200/70">Intelligent cinematic storytelling engine</p><h1 className="serif mt-3 max-w-3xl text-4xl leading-[.95] tracking-tight text-stone-100 sm:text-6xl">Turn words<br /><em className="text-amber-200/90">into worlds.</em></h1><p className="mt-5 max-w-xl text-sm leading-7 text-stone-400">CINEMA OS connects source material, narration, cinematic illustration, sound, score, typography, and timing in a single production memory—so the experience begins with understanding, not a blank prompt.</p><div className="mt-7 flex flex-wrap gap-3"><Button onClick={() => onTab("Source")} className="button-press bg-amber-300 text-stone-950 hover:bg-amber-200"><FileUp size={15} /> Open source brief</Button><Button onClick={onCreate} variant="outline" className="button-press border-amber-100/20 bg-transparent text-stone-200 hover:bg-white/5"><Plus size={15} /> Create another experience</Button></div></div>
         <div className="panel-soft grid gap-5 p-5"><div className="flex items-center justify-between"><p className="label">Current production</p><StageChip status={project.status} /></div><div><p className="serif text-2xl text-stone-100">{project.title}</p><p className="mt-2 text-xs leading-5 text-stone-400">{project.logline || "No logline yet. Frame the central dramatic question."}</p></div><div><div className="mb-2 flex justify-between mono text-[9px] tracking-wider text-stone-500"><span>PRODUCTION MAP</span><span className="text-amber-200">{progress}%</span></div><div className="h-1.5 bg-stone-900"><div className="h-full bg-gradient-to-r from-amber-500 to-amber-200" style={{ width: `${progress}%` }} /></div></div></div>
       </div>
     </div>
     <section className="mt-8"><div className="mb-4 flex items-end justify-between"><div><p className="label">The production path</p><h2 className="serif mt-2 text-2xl text-stone-100">Work in a deliberate sequence.</h2></div><button onClick={() => onTab("Projects")} className="mono text-[10px] tracking-[.12em] text-amber-200 hover:text-amber-100">ALL PROJECTS <ArrowRight className="ml-1 inline" size={13} /></button></div><div className="grid gap-px overflow-hidden border border-amber-100/10 bg-amber-100/10 md:grid-cols-5">{stages.map(([number, title, ready, meta, tab]) => <button key={title} onClick={() => onTab(tab)} className="group min-h-48 bg-[#15181f] p-5 text-left transition hover:bg-[#1a1e26]"><div className="flex justify-between"><span className="mono text-[10px] text-stone-600">{number}</span><span className={`size-2 rounded-full ${ready ? "bg-amber-300 shadow-[0_0_12px_rgba(252,211,120,.8)]" : "bg-stone-700"}`} /></div><p className="serif mt-9 text-xl text-stone-100">{title}</p><p className="mt-2 text-[11px] leading-5 text-stone-500">{meta}</p><span className="mt-5 inline-block mono text-[9px] tracking-[.1em] text-amber-200/0 transition group-hover:text-amber-200">ENTER MODULE →</span></button>)}</div></section>
-    <section className="mt-8 grid gap-6 lg:grid-cols-[1.15fr_.85fr]"><div className="panel p-6"><div className="flex items-start justify-between"><div><p className="label">Live sequence</p><h2 className="serif mt-2 text-2xl text-stone-100">Scene pulse</h2></div><button onClick={() => onTab("Scenes")} className="icon-button"><ArrowRight size={15} /></button></div><div className="mt-5 divide-y divide-amber-100/10">{project.scenes.slice(0, 4).map((scene) => <button key={scene.id} onClick={() => { onSelectScene(scene.id); onTab("Scenes"); }} className="grid w-full grid-cols-[auto_1fr_auto] gap-4 py-4 text-left transition hover:bg-white/[.02]"><span className="mono text-[10px] text-amber-200">{String(scene.number).padStart(2, "0")}</span><span><span className="block serif text-lg text-stone-200">{scene.heading}</span><span className="mt-1 block mono text-[9px] tracking-wider text-stone-500">{scene.designation} · {scene.location.toUpperCase()} · {scene.timeOfDay.toUpperCase()}</span></span><ArrowRight size={15} className="mt-1 text-stone-600" /></button>)}</div></div><div className="panel relative overflow-hidden p-6"><FilmStrip label="CREATIVE CONTINUITY" /><div className="mt-7"><p className="label">Assistant cue</p><h2 className="serif mt-2 text-2xl text-stone-100">Protect the throughline.</h2><p className="mt-3 text-sm leading-6 text-stone-400">Ask the Script Assistant to test an emotional turn, find a continuity risk, or draft the subtext before a scene becomes a shot.</p><Button onClick={() => onTab("AI Assistant")} variant="outline" className="mt-6 border-amber-100/20 bg-transparent text-amber-100 hover:bg-amber-100/5"><Sparkles size={14} /> Consult the studio</Button></div></div></section>
+    <section className="mt-8 grid gap-6 lg:grid-cols-[1.15fr_.85fr]"><div className="panel p-6"><div className="flex items-start justify-between"><div><p className="label">Live chapter sequence</p><h2 className="serif mt-2 text-2xl text-stone-100">Narrative pulse</h2></div><button onClick={() => onTab("Chapters")} className="icon-button"><ArrowRight size={15} /></button></div><div className="mt-5 divide-y divide-amber-100/10">{project.chapters.slice(0, 4).map((chapter) => <button key={chapter.id} onClick={() => onTab("Chapters")} className="grid w-full grid-cols-[auto_1fr_auto] gap-4 py-4 text-left transition hover:bg-white/[.02]"><span className="mono text-[10px] text-amber-200">{String(chapter.number).padStart(2, "0")}</span><span><span className="block serif text-lg text-stone-200">{chapter.title}</span><span className="mt-1 block mono text-[9px] tracking-wider text-stone-500">{Math.floor(chapter.durationSeconds / 60)}:{String(chapter.durationSeconds % 60).padStart(2, "0")} · {chapter.visualMoments} VISUAL MOMENTS · {chapter.status.toUpperCase()}</span></span><ArrowRight size={15} className="mt-1 text-stone-600" /></button>)}</div></div><div className="panel relative overflow-hidden p-6"><FilmStrip label="CREATIVE CONTINUITY" /><div className="mt-7"><p className="label">Assistant cue</p><h2 className="serif mt-2 text-2xl text-stone-100">Protect the throughline.</h2><p className="mt-3 text-sm leading-6 text-stone-400">Ask the Script Assistant to test a chapter adaptation, narration beat, visual metaphor, or continuity risk before the audiovisual timeline is locked.</p><Button onClick={() => onTab("AI Assistant")} variant="outline" className="mt-6 border-amber-100/20 bg-transparent text-amber-100 hover:bg-amber-100/5"><Sparkles size={14} /> Consult the studio</Button></div></div></section>
   </div>;
 }
 
 function ProjectsPanel({ projects, activeProjectId, onSelect, onCreate }: { projects: FilmProject[]; activeProjectId: string; onSelect: (id: string) => void; onCreate: () => void }) {
-  return <div className="reveal"><SectionHeading eyebrow="Project desk" title="Films in development" description="Each project carries its own story memory, production decisions, visual references, and generated frames." action={<Button onClick={onCreate} className="bg-amber-300 text-stone-950 hover:bg-amber-200"><Plus size={15} /> New film</Button>} /><div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">{projects.map((project) => <button key={project.id} onClick={() => onSelect(project.id)} className={`group relative overflow-hidden border p-6 text-left transition hover:-translate-y-0.5 ${project.id === activeProjectId ? "border-amber-300/45 bg-amber-300/[.07]" : "border-amber-100/10 bg-[#16191f]/75 hover:border-amber-100/25"}`}><FilmStrip label="CINEMA OS · FILM FILE" /><div className="mt-9 flex items-start justify-between"><p className="serif max-w-[80%] text-3xl leading-none text-stone-100">{project.title}</p><MoreHorizontal size={18} className="text-stone-600" /></div><p className="mt-4 min-h-16 text-xs leading-6 text-stone-400">{project.logline || "A working file awaiting its central dramatic proposition."}</p><div className="mt-7 flex items-center justify-between"><StageChip status={project.status} /><span className="mono text-[9px] tracking-wider text-amber-200">{getProjectProgress(project)}% MAP</span></div></button>)}</div></div>;
+  return <div className="reveal"><SectionHeading eyebrow="Experience library" title="Stories in production" description="Each project retains its source context, chapter architecture, audiovisual direction, timing plan, and review decisions." action={<Button onClick={onCreate} className="bg-amber-300 text-stone-950 hover:bg-amber-200"><Plus size={15} /> New experience</Button>} /><div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">{projects.map((project) => <button key={project.id} onClick={() => onSelect(project.id)} className={`group relative overflow-hidden border p-6 text-left transition hover:-translate-y-0.5 ${project.id === activeProjectId ? "border-amber-300/45 bg-amber-300/[.07]" : "border-amber-100/10 bg-[#16191f]/75 hover:border-amber-100/25"}`}><FilmStrip label="CINEMA OS · EXPERIENCE FILE" /><div className="mt-9 flex items-start justify-between"><p className="serif max-w-[80%] text-3xl leading-none text-stone-100">{project.title}</p><MoreHorizontal size={18} className="text-stone-600" /></div><p className="mt-4 min-h-16 text-xs leading-6 text-stone-400">{project.logline || "A working file awaiting its central dramatic proposition."}</p><div className="mt-7 flex items-center justify-between"><StageChip status={project.status} /><span className="mono text-[9px] tracking-wider text-amber-200">{getProjectProgress(project)}% MAP</span></div></button>)}</div></div>;
 }
 
 function StoryPanel({ project, onUpdate, onAsk }: { project: FilmProject; onUpdate: (project: FilmProject) => void; onAsk: () => void }) {

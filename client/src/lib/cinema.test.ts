@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { composeGenerationPrompt, createFilmProject, getProjectProgress, sortShots, studioSeed } from "./cinema";
+import { composeGenerationPrompt, createAudiobookChapter, createFilmProject, getChapterDuration, getProjectProgress, getQualityAverage, sortShots, studioSeed, withExperienceDefaults } from "./cinema";
 
 describe("cinema domain utilities", () => {
   it("creates a project with a usable default production state", () => {
@@ -29,5 +29,45 @@ describe("cinema domain utilities", () => {
     expect(prompt).toContain("100mm macro");
     expect(prompt).toContain("Saltmarsh Observatory");
     expect(prompt).toContain("Subdued weathered texture.");
+  });
+
+  it("formats an audiovisual chapter duration for a timeline", () => {
+    const chapter = createAudiobookChapter(3);
+    chapter.durationSeconds = 367;
+    expect(getChapterDuration(chapter)).toBe("06:07");
+  });
+
+  it("averages the populated audiovisual quality dimensions", () => {
+    const quality = { ...studioSeed.projects[0]!.quality, literaryAccuracy: 90, narration: 80, visualStorytelling: 70, continuity: 0, sound: 0, pacing: 0, typography: 0, immersion: 0 };
+    expect(getQualityAverage(quality)).toBe(80);
+  });
+
+  it("adds visual-audiobook defaults to an existing stored project", () => {
+    const legacyProject = { ...studioSeed.projects[0]! };
+    delete (legacyProject as Partial<typeof legacyProject>).source;
+    delete (legacyProject as Partial<typeof legacyProject>).experience;
+    delete (legacyProject as Partial<typeof legacyProject>).chapters;
+    delete (legacyProject as Partial<typeof legacyProject>).timeline;
+    delete (legacyProject as Partial<typeof legacyProject>).quality;
+    const hydrated = withExperienceDefaults(legacyProject as typeof studioSeed.projects[number]);
+    expect(hydrated.source.ingestionStatus).toBe("Not added");
+    expect(hydrated.chapters).toEqual([]);
+  });
+
+  it("preserves an uploaded source reference across project hydration", () => {
+    const project = studioSeed.projects[0]!;
+    const hydrated = withExperienceDefaults({
+      ...project,
+      source: {
+        ...project.source,
+        ingestionStatus: "Uploaded",
+        fileKey: "cinema-os/1/sources/story.txt",
+        fileUrl: "/manus-storage/cinema-os/1/sources/story.txt",
+        sizeBytes: 4096,
+      },
+    });
+    expect(hydrated.source.ingestionStatus).toBe("Uploaded");
+    expect(hydrated.source.fileKey).toContain("sources/story.txt");
+    expect(hydrated.source.sizeBytes).toBe(4096);
   });
 });

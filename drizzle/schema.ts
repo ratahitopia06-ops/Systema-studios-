@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -25,4 +25,26 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
-// TODO: Add your tables here
+export const cinemaSourceIngestions = mysqlTable(
+  "cinema_source_ingestions",
+  {
+    id: int("id").autoincrement().primaryKey(),
+    userId: int("userId").notNull(),
+    projectId: varchar("projectId", { length: 96 }).notNull(),
+    sourceName: varchar("sourceName", { length: 255 }).notNull(),
+    sourceType: varchar("sourceType", { length: 32 }).notNull(),
+    rightsStatus: varchar("rightsStatus", { length: 32 }).notNull(),
+    storageKey: varchar("storageKey", { length: 512 }),
+    storageUrl: varchar("storageUrl", { length: 512 }),
+    sizeBytes: int("sizeBytes"),
+    status: mysqlEnum("status", ["selected", "uploaded", "ready_for_analysis", "analysed", "failed"]).notNull().default("selected"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    userProjectUnique: uniqueIndex("cinema_source_ingestions_user_project_unique").on(table.userId, table.projectId),
+  })
+);
+
+export type CinemaSourceIngestion = typeof cinemaSourceIngestions.$inferSelect;
+export type InsertCinemaSourceIngestion = typeof cinemaSourceIngestions.$inferInsert;

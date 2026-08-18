@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { cinemaSourceIngestions, InsertUser, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -89,4 +89,43 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
+export async function upsertCinemaSourceIngestion(input: {
+  userId: number;
+  projectId: string;
+  sourceName: string;
+  sourceType: string;
+  rightsStatus: string;
+  status: "selected" | "uploaded" | "ready_for_analysis" | "analysed" | "failed";
+  storageKey?: string;
+  storageUrl?: string;
+  sizeBytes?: number;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is unavailable. Source ingestion cannot be persisted.");
+
+  await db.insert(cinemaSourceIngestions).values(input).onDuplicateKeyUpdate({
+    set: {
+      sourceName: input.sourceName,
+      sourceType: input.sourceType,
+      rightsStatus: input.rightsStatus,
+      status: input.status,
+      storageKey: input.storageKey ?? null,
+      storageUrl: input.storageUrl ?? null,
+      sizeBytes: input.sizeBytes ?? null,
+    },
+  });
+
+  const records = await db.select().from(cinemaSourceIngestions).where(and(eq(cinemaSourceIngestions.userId, input.userId), eq(cinemaSourceIngestions.projectId, input.projectId))).limit(1);
+  return records[0];
+}
+
+export async function markCinemaSourceReady(userId: number, projectId: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database is unavailable. Source ingestion cannot be persisted.");
+  const records = await db.select().from(cinemaSourceIngestions).where(and(eq(cinemaSourceIngestions.userId, userId), eq(cinemaSourceIngestions.projectId, projectId))).limit(1);
+  const source = records[0];
+  if (!source?.storageKey || !source.storageUrl) throw new Error("Upload source material before marking it ready for analysis.");
+
+  await db.update(cinemaSourceIngestions).set({ status: "ready_for_analysis" }).where(eq(cinemaSourceIngestions.id, source.id));
+  return { ...source, status: "ready_for_analysis" as const };
+}
