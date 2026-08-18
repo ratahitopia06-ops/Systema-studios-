@@ -34,4 +34,4 @@
 - [x] Validate profile previews and custom-template workflows with responsive review, type checking, tests, and production build.
 - [x] Persist custom template profiles as project-linked records beyond browser-local state.
 - [x] Add test coverage for deleting an attached custom profile and reassigning projects to the fallback template across sync/reload behavior.
-- [ ] Push the profile-preview and custom-template update to feature/cinema-os.
+- [x] Push the profile-preview and custom-template update to feature/cinema-os.
