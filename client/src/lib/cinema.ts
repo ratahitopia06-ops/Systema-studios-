@@ -73,12 +73,27 @@ export type SourceMaterial = {
 export type ExperienceSettings = {
   mode: "Full book" | "Chapter" | "Section" | "Trailer" | "Study mode";
   adaptation: "Original" | "Condensed" | "Expanded";
-  narration: "Natural" | "Dramatic" | "Documentary" | "Character-driven";
+  narration: "Natural" | "Dramatic" | "Documentary" | "Character-driven" | "Educational";
   visualStyle: "Cinematic" | "Realistic" | "Illustrated" | "Painterly" | "Animation";
   sound: "Minimal" | "Atmospheric" | "Cinematic" | "Immersive";
   music: "Minimal" | "Emotional" | "Epic" | "Experimental";
   presentation: "Landscape" | "Portrait" | "Mobile" | "Theatre";
   qualityMode: "Preview" | "Standard" | "Cinematic" | "Master";
+  templateId: string;
+  templateLocked: boolean;
+};
+
+export type CreativeTemplate = {
+  id: string;
+  name: string;
+  family: "Cinematic" | "Comic" | "Anime" | "Philosophy" | "Modern social" | "Drama" | "Education" | "Mythic";
+  summary: string;
+  tone: string;
+  narration: { mode: ExperienceSettings["narration"]; profile: string; pace: string; delivery: string };
+  illustration: { style: ExperienceSettings["visualStyle"]; profile: string; composition: string; typography: string };
+  soundscape: { density: ExperienceSettings["sound"]; profile: string; silence: string };
+  soundtrack: { direction: ExperienceSettings["music"]; profile: string; dynamic: string };
+  aesthetic: { palette: string; texture: string; motion: string };
 };
 
 export type AudiobookChapter = {
@@ -159,7 +174,52 @@ export const defaultExperienceSettings: ExperienceSettings = {
   music: "Emotional",
   presentation: "Landscape",
   qualityMode: "Cinematic",
+  templateId: "cinematic-drama",
+  templateLocked: false,
 };
+
+export const creativeTemplates: CreativeTemplate[] = [
+  {
+    id: "cinematic-drama", name: "Cinematic Drama", family: "Cinematic", summary: "Human-scale emotion, patient observation, and an image-led dramatic pulse.", tone: "Intimate, consequential, restrained", narration: { mode: "Dramatic", profile: "Warm, close-miked, emotionally precise", pace: "Measured with room after revelations", delivery: "Understated escalation" }, illustration: { style: "Cinematic", profile: "Naturalistic cinematic frames", composition: "Negative space and motivated close-ups", typography: "Quiet chapter cards in editorial serif" }, soundscape: { density: "Atmospheric", profile: "Place-specific ambience and selective Foley", silence: "Hold silence at emotional turns" }, soundtrack: { direction: "Emotional", profile: "Piano, bowed texture, and restrained harmonics", dynamic: "Enter late; release into breath" }, aesthetic: { palette: "Wet black, smoke grey, aged amber", texture: "Fine grain and practical light", motion: "Slow push-ins and delicate drift" },
+  },
+  {
+    id: "graphic-novel", name: "Graphic Novel", family: "Comic", summary: "Bold panels, kinetic pacing, and expressive visual punctuation for high-contrast storytelling.", tone: "Urgent, punchy, stylized", narration: { mode: "Character-driven", profile: "Confident ensemble storyteller", pace: "Brisk with punchline and impact pauses", delivery: "Clean attitude and high contrast" }, illustration: { style: "Illustrated", profile: "Ink, halftone, and panel-driven illustration", composition: "Dutch angles, inserts, and split-panel moments", typography: "Speech-card accents and oversized chapter stamps" }, soundscape: { density: "Cinematic", profile: "Impacts, city beds, and tactile foley", silence: "Freeze sound before a reveal" }, soundtrack: { direction: "Epic", profile: "Percussive pulse and electric texture", dynamic: "Hit transitions with graphic energy" }, aesthetic: { palette: "Ink black, signal red, paper cream", texture: "Halftone, brush ink, print wear", motion: "Panel slides, snap zooms, and parallax" },
+  },
+  {
+    id: "anime-reverie", name: "Anime Reverie", family: "Anime", summary: "Emotion-forward animation language with atmospheric worlds, held looks, and lyrical transitions.", tone: "Luminous, earnest, contemplative", narration: { mode: "Dramatic", profile: "Clear, youthful, emotionally open", pace: "Fluid with breathing space for images", delivery: "Sincere and quietly heightened" }, illustration: { style: "Animation", profile: "Hand-painted anime environments and expressive character framing", composition: "Skyward scale, profile close-ups, and symbolic cutaways", typography: "Minimal title cards with delicate sans serif" }, soundscape: { density: "Atmospheric", profile: "Wind, distant trains, rain, and soft room tone", silence: "A suspended beat before transformation" }, soundtrack: { direction: "Emotional", profile: "Piano motifs, strings, and luminous synth air", dynamic: "Melody carries between spoken passages" }, aesthetic: { palette: "Twilight blue, sakura pink, gold light", texture: "Watercolour skies and cel-soft shadow", motion: "Wind, drifting light, and slow parallax" },
+  },
+  {
+    id: "philosophical-essay", name: "Philosophical Essay", family: "Philosophy", summary: "A contemplative, idea-led profile that turns abstraction into visual metaphor without oversimplifying it.", tone: "Reflective, lucid, spacious", narration: { mode: "Documentary", profile: "Calm, articulate essay voice", pace: "Unhurried and concept-led", delivery: "Clear propositions with thoughtful pauses" }, illustration: { style: "Painterly", profile: "Symbolic imagery, diagrams, and visual metaphors", composition: "Objects in negative space; slow conceptual reveals", typography: "Elegant definitions, quotations, and restrained labels" }, soundscape: { density: "Minimal", profile: "Room tone, elemental ambience, and sparse texture", silence: "Use silence as a thinking interval" }, soundtrack: { direction: "Minimal", profile: "Felt piano, low drones, and subtle resonant tone", dynamic: "Nearly absent beneath dense ideas" }, aesthetic: { palette: "Chalk, charcoal, lapis, and soft gold", texture: "Paper grain and luminous ink", motion: "Slow diagrams, dissolves, and orbiting objects" },
+  },
+  {
+    id: "modern-social", name: "Modern Social Documentary", family: "Modern social", summary: "Contemporary people, real places, and social context shaped with clarity, energy, and grounded empathy.", tone: "Immediate, observant, humane", narration: { mode: "Documentary", profile: "Grounded contemporary guide", pace: "Purposeful and conversational", delivery: "Direct, evidence-aware, and warm" }, illustration: { style: "Realistic", profile: "Contemporary documentary stills and editorial layouts", composition: "Human scale, environmental portraits, and data moments", typography: "Modern utility sans with factual callouts" }, soundscape: { density: "Immersive", profile: "Transit, room tone, crowd distance, and daily texture", silence: "Reduce the bed around testimony" }, soundtrack: { direction: "Experimental", profile: "Textural electronics, beat fragments, and ambient rhythm", dynamic: "Rhythm follows lived momentum" }, aesthetic: { palette: "Concrete, cobalt, warm skin, highlighter yellow", texture: "Editorial grain and urban reflections", motion: "Handheld drift, maps, and animated captions" },
+  },
+  {
+    id: "mythic-fable", name: "Mythic Fable", family: "Mythic", summary: "Archetypal storytelling with ritual pacing, tactile landscapes, and symbolic recurring motifs.", tone: "Ancient, uncanny, ceremonial", narration: { mode: "Dramatic", profile: "Low, textured, fireside narrator", pace: "Ritual and deliberate", delivery: "Invocatory without imitation" }, illustration: { style: "Painterly", profile: "Mythic tableau and symbolic creature design", composition: "Monumental landscapes and iconic silhouettes", typography: "Carved title cards and sparse mythic epigraphs" }, soundscape: { density: "Cinematic", profile: "Fire, wind, forest, distant bells, and ritual objects", silence: "Open silence before prophecy" }, soundtrack: { direction: "Epic", profile: "Frame drums, strings, voices, and low brass", dynamic: "Themes evolve like remembered legend" }, aesthetic: { palette: "Oxide red, moon silver, moss, and ember gold", texture: "Pigment, vellum, weathered stone", motion: "Smoke, embers, and layered parallax" },
+  },
+  {
+    id: "noir-thriller", name: "Noir Thriller", family: "Drama", summary: "A pressure-building profile for secrets, investigation, moral ambiguity, and late-night momentum.", tone: "Tense, elegant, morally charged", narration: { mode: "Dramatic", profile: "Intimate, controlled, slightly weathered", pace: "Tight and withholding", delivery: "Let subtext carry the accusation" }, illustration: { style: "Cinematic", profile: "Noir light, urban rain, and precise shadow", composition: "Frames within frames, glances, and reflected surfaces", typography: "Condensed location cards and evidence labels" }, soundscape: { density: "Cinematic", profile: "Rain, neon hum, traffic, elevators, and quiet interiors", silence: "Drop the city bed before a decision" }, soundtrack: { direction: "Experimental", profile: "Muted brass, pulse bass, and detuned piano", dynamic: "Build unease below the language" }, aesthetic: { palette: "Inky blue, sodium amber, chrome, and red signal", texture: "Wet asphalt, film grain, smoked glass", motion: "Slow tracks, surveillance drift, and flicker" },
+  },
+  {
+    id: "educational-atlas", name: "Educational Atlas", family: "Education", summary: "Clear, visually rich learning design that knows when to narrate and when to show a map, timeline, diagram, or comparison.", tone: "Curious, authoritative, inviting", narration: { mode: "Educational", profile: "Friendly expert guide", pace: "Steady with comprehension pauses", delivery: "Concrete examples before abstraction" }, illustration: { style: "Illustrated", profile: "Maps, diagrams, labelled illustration, and contextual scenes", composition: "One key idea per visual moment", typography: "Legible labels, timelines, and definition cards" }, soundscape: { density: "Minimal", profile: "Low-distraction environmental bed and gentle transitions", silence: "Use silence during diagrams and reflection" }, soundtrack: { direction: "Minimal", profile: "Light marimba, piano, and subtle pulse", dynamic: "Stay below instructional speech" }, aesthetic: { palette: "Deep navy, parchment, teal, and signal orange", texture: "Clean paper, cartographic line, soft grain", motion: "Diagram builds, map paths, and gentle callouts" },
+  },
+];
+
+export function applyCreativeTemplate(project: FilmProject, templateId: string): FilmProject {
+  const template = creativeTemplates.find((item) => item.id === templateId);
+  if (!template) return project;
+  return {
+    ...project,
+    experience: {
+      ...project.experience,
+      templateId: template.id,
+      narration: template.narration.mode,
+      visualStyle: template.illustration.style,
+      sound: template.soundscape.density,
+      music: template.soundtrack.direction,
+    },
+  };
+}
 
 export const defaultQualityReview: QualityReview = {
   literaryAccuracy: 0,

@@ -1,4 +1,5 @@
 import { AIChatBox, type Message } from "@/components/AIChatBox";
+import CreativeTemplateLibrary from "@/components/CreativeTemplateLibrary";
 import VisualAudiobookWorkspace, { type ExperienceView } from "@/components/VisualAudiobookWorkspace";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ import {
   MoreHorizontal,
   PanelLeftClose,
   PanelLeftOpen,
+  Palette,
   Plus,
   ScanLine,
   Settings2,
@@ -63,12 +65,13 @@ import {
 } from "@/lib/cinema";
 import { trpc } from "@/lib/trpc";
 
-type StudioTab = "Studio" | "Projects" | "Source" | "Story Bible" | "Chapters" | "Narration" | "Characters" | "World" | "Scenes" | "Shot List" | "Generation" | "Audio" | "Timeline" | "Quality" | "Export" | "AI Assistant";
+type StudioTab = "Studio" | "Projects" | "Source" | "Templates" | "Story Bible" | "Chapters" | "Narration" | "Characters" | "World" | "Scenes" | "Shot List" | "Generation" | "Audio" | "Timeline" | "Quality" | "Export" | "AI Assistant";
 
 const navItems: { label: StudioTab; icon: typeof LayoutDashboard }[] = [
   { label: "Studio", icon: LayoutDashboard },
   { label: "Projects", icon: Film },
   { label: "Source", icon: FileUp },
+  { label: "Templates", icon: Palette },
   { label: "Story Bible", icon: BookOpen },
   { label: "Chapters", icon: BookOpenText },
   { label: "Narration", icon: AudioLines },
@@ -314,6 +317,8 @@ export default function Home() {
         return <ProjectsPanel projects={studio.projects} activeProjectId={current.id} onSelect={(id) => setStudio((state) => ({ ...state, activeProjectId: id }))} onCreate={() => setCreateOpen(true)} />;
       case "Story Bible":
         return <StoryPanel project={current} onUpdate={updateCurrent} onAsk={() => setTab("AI Assistant")} />;
+      case "Templates":
+        return <CreativeTemplateLibrary project={current} onUpdate={updateCurrent} />;
       case "Source":
       case "Chapters":
       case "Narration":
@@ -354,7 +359,7 @@ export default function Home() {
           </button>
         </div>
         <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-          {navItems.map(({ label, icon: Icon }, index) => <div key={label}>{index === 2 && sidebarOpen && <p className="label mb-2 mt-5 px-2 text-[8px]">Visual audiobook production</p>}{index === 10 && sidebarOpen && <p className="label mb-2 mt-5 px-2 text-[8px]">Assembly & review</p>}<button onClick={() => setTab(label)} data-active={activeTab === label} className="nav-item" title={label}><Icon size={15} strokeWidth={1.6} /><span className={sidebarOpen ? "" : "hidden"}>{label}</span></button></div>)}
+          {navItems.map(({ label, icon: Icon }, index) => <div key={label}>{index === 2 && sidebarOpen && <p className="label mb-2 mt-5 px-2 text-[8px]">Visual audiobook production</p>}{index === 11 && sidebarOpen && <p className="label mb-2 mt-5 px-2 text-[8px]">Assembly & review</p>}<button onClick={() => setTab(label)} data-active={activeTab === label} className="nav-item" title={label}><Icon size={15} strokeWidth={1.6} /><span className={sidebarOpen ? "" : "hidden"}>{label}</span></button></div>)}
         </nav>
         <div className="border-t border-amber-100/10 p-3">
           <button onClick={() => setSidebarOpen((open) => !open)} className="nav-item"><>{sidebarOpen ? <PanelLeftClose size={15} /> : <PanelLeftOpen size={15} />}</><span className={sidebarOpen ? "" : "hidden"}>Collapse navigation</span></button>

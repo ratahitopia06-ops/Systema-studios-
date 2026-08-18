@@ -23,3 +23,8 @@
 - [x] Persist source-ingestion metadata and state transitions beyond browser-local project state.
 - [x] Implement and test the complete source state path from selected to uploaded to ready for analysis.
 - [x] Push the visual-audiobook synthesis update to feature/cinema-os.
+- [x] Add an attached creative-template library to visual-audiobook project settings.
+- [x] Provide selectable narration, art illustration, tone, soundscape, soundtrack, and aesthetic profiles across comic, anime, philosophy, modern, social, cinematic, drama, and related styles.
+- [x] Apply a selected profile as a reusable project-level creative direction and add test coverage.
+- [x] Validate the creative-template update with responsive review, type checking, tests, and production build.
+- [ ] Push the creative-template update to feature/cinema-os.

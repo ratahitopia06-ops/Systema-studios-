@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { composeGenerationPrompt, createAudiobookChapter, createFilmProject, getChapterDuration, getProjectProgress, getQualityAverage, sortShots, studioSeed, withExperienceDefaults } from "./cinema";
+import { applyCreativeTemplate, composeGenerationPrompt, createAudiobookChapter, createFilmProject, creativeTemplates, getChapterDuration, getProjectProgress, getQualityAverage, sortShots, studioSeed, withExperienceDefaults } from "./cinema";
 
 describe("cinema domain utilities", () => {
   it("creates a project with a usable default production state", () => {
@@ -69,5 +69,15 @@ describe("cinema domain utilities", () => {
     expect(hydrated.source.ingestionStatus).toBe("Uploaded");
     expect(hydrated.source.fileKey).toContain("sources/story.txt");
     expect(hydrated.source.sizeBytes).toBe(4096);
+  });
+
+  it("attaches a creative profile to project-level narration, illustration, soundscape, and soundtrack settings", () => {
+    const template = creativeTemplates.find((item) => item.id === "anime-reverie")!;
+    const styled = applyCreativeTemplate(studioSeed.projects[0]!, template.id);
+    expect(styled.experience.templateId).toBe("anime-reverie");
+    expect(styled.experience.narration).toBe(template.narration.mode);
+    expect(styled.experience.visualStyle).toBe(template.illustration.style);
+    expect(styled.experience.sound).toBe(template.soundscape.density);
+    expect(styled.experience.music).toBe(template.soundtrack.direction);
   });
 });
