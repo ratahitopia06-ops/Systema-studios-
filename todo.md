@@ -12,5 +12,5 @@
 - [x] Add client-side project-domain data models and interactive state transitions for the planning workflow.
 - [x] Add unit tests for core film-production data utilities and workflow behavior.
 - [x] Validate responsive UI, production build, type checking, and test suite.
-- [ ] Commit and push the completed application to ratahitopia06-ops/Systema-studios-.
+- [x] Commit and push the completed application to ratahitopia06-ops/Systema-studios- on feature/cinema-os.
 - [x] Add explicit sign-in gates for live AI Script Assistant and image-generation workflows.
